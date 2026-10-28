@@ -65,7 +65,8 @@ main{max-width:780px;margin:0 auto;padding:16px 16px calc(40px + env(safe-area-i
 .fl>span{display:block;font-size:14px;color:var(--muted);margin-bottom:6px;font-weight:500}
 .fl input,.fl select,.inp,.search{width:100%;min-height:48px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#111114;color:var(--text);outline:none;transition:border .15s,box-shadow .15s}
 .fl input:focus,.fl select:focus,.inp:focus,.search:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--goldsoft)}
-input[type=date]{min-height:48px}
+input[type=date]{min-height:48px;color-scheme:dark;direction:ltr;text-align:right;cursor:pointer}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(78%) sepia(60%) saturate(500%) hue-rotate(5deg);opacity:1;cursor:pointer;width:22px;height:22px}
 .inp{margin-bottom:8px}
 .seg{display:flex;gap:6px;background:#111114;border:1px solid var(--line);border-radius:12px;padding:4px}
 .seg button{flex:1;min-height:40px;border:none;border-radius:9px;background:none;color:var(--muted);font-weight:700;cursor:pointer}
@@ -291,6 +292,8 @@ textarea.inp{min-height:96px;resize:vertical;padding:12px 14px;line-height:1.6}
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 'use strict';
+document.addEventListener('click',e=>{const t=e.target;if(t&&t.tagName==='INPUT'&&t.type==='date'&&typeof t.showPicker==='function'){try{t.showPicker();}catch(_){}}});
+
 /* ================= إعدادات ================= */
 const SB_URL='https://blozwdykusqnfyzdkqrg.supabase.co';
 const SB_KEY='sb_publishable_kAjzomjSSQDMy1RSC_Ax_Q_MAgTf9tn';
