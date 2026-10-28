@@ -120,6 +120,11 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(78%) sepia(60%
 .photo-pick{display:block;border:2px dashed rgba(232,191,69,.45);border-radius:14px;padding:18px;text-align:center;cursor:pointer;color:var(--gold);font-weight:700}
 .photo-pick input{display:none}
 .photo-pick img{max-width:100%;max-height:260px;border-radius:10px;display:block;margin:0 auto}
+.att-prev{display:block;border:2px dashed rgba(232,191,69,.45);border-radius:14px;padding:14px;text-align:center;color:var(--gold);font-weight:700;margin-bottom:8px}
+.att-prev img{max-width:100%;max-height:260px;border-radius:10px;display:block;margin:0 auto}
+.att-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.att-btns label{display:flex;align-items:center;justify-content:center;gap:6px;min-height:46px;border-radius:12px;border:1px solid var(--line);background:#111114;color:var(--text);font-weight:700;cursor:pointer}
+.att-btns input{display:none}
 .kv{width:100%;border-collapse:collapse}
 .kv th{text-align:right;color:var(--muted);font-weight:500;padding:8px 0;width:38%;vertical-align:top;font-size:14px}
 .kv td{padding:8px 0;font-weight:700}
@@ -208,6 +213,7 @@ textarea.inp{min-height:96px;resize:vertical;padding:12px 14px;line-height:1.6}
 @media (max-width:380px){.tiles{gap:9px}.tile{min-height:104px}.stats b{font-size:17px}}
 @media print{
   @page{size:A4;margin:12mm}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   body{background:#fff!important;color:#000}
   body>*:not(#printArea){display:none!important}
   #printArea{display:block!important;color:#000;font-family:'Tajawal',sans-serif;direction:rtl}
@@ -292,6 +298,12 @@ textarea.inp{min-height:96px;resize:vertical;padding:12px 14px;line-height:1.6}
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 'use strict';
+const AR_DIG=/[٠-٩۰-۹٫٬،]/;
+function normDigits(v){ return String(v).replace(/[٠-٩]/g,d=>d.charCodeAt(0)-0x660).replace(/[۰-۹]/g,d=>d.charCodeAt(0)-0x6F0).replace(/٫/g,'.').replace(/[٬]/g,','); }
+document.addEventListener('input',e=>{ const t=e.target; if(!t||t.tagName!=='INPUT') return; if(['file','date','checkbox','radio','password'].includes(t.type)) return;
+  let v=t.value; if(AR_DIG.test(v)){ if(t.dataset.num) v=v.replace(/،/g,'.'); v=normDigits(v); const p=t.selectionStart; t.value=v; try{ t.setSelectionRange(p,p); }catch(_){} }
+  if(t.dataset.num){ const c=t.value.replace(/[^0-9.,]/g,''); if(c!==t.value){ const p=Math.max(0,(t.selectionStart||0)-(t.value.length-c.length)); t.value=c; try{ t.setSelectionRange(p,p); }catch(_){} } } },true);
+
 document.addEventListener('click',e=>{const t=e.target;if(t&&t.tagName==='INPUT'&&t.type==='date'&&typeof t.showPicker==='function'){try{t.showPicker();}catch(_){}}});
 
 /* ================= إعدادات ================= */
@@ -376,7 +388,7 @@ function inputBox(msg,val=''){
   });
 }
 function field(id,label,val='',type='text',extra=''){
-  return `<label class="fl"><span>${label}</span><input id="${id}" type="${type}" value="${esc(val??'')}" ${type==='number'?'inputmode="decimal" step="any" min="0"':''} ${extra}></label>`;
+  return `<label class="fl"><span>${label}</span><input id="${id}" type="${type==='number'?'text':type}" value="${esc(val??'')}" ${type==='number'?'inputmode="decimal" autocomplete="off" data-num="1"':''} ${extra}></label>`;
 }
 function qrSvg(text){ const q=qrcode(0,'M'); q.addData(String(text)); q.make(); return q.createSvgTag({cellSize:6,margin:2,scalable:true}); }
 function waitImages(root,timeout=6000){
@@ -618,20 +630,22 @@ SCREENS.productForm={title:p=>p.id?'تعديل المنتج':'إضافة منت�
     ${canPrice?`<div class="row2">${field('f_cost','سعر التكلفة',pr.cost??'','number')}${field('f_price','سعر البيع',pr.price??'','number')}</div>`:'<div class="hint">🔒 أسعار هذا المنتج لا تظهر لك (أضافه حساب آخر)</div>'}
     <div class="fl"><span>صورة المنتج</span><label class="photo-pick"><input type="file" accept="image/*" id="f_img" onchange="previewInto(this,'f_prev')"><span id="f_prev">${imgUrl?`<img src="${imgUrl}" alt="">`:'🖼️ اضغط لإضافة صورة المنتج (اختياري)'}</span></label></div>
     ${p.id?`<button class="btn ghost block" onclick="go('notes',{pid:'${p.id}'})">📝 ملاحظات المنتج${noteCount?` (${noteCount})`:''} — عرض / إضافة</button>`:`<label class="fl"><span>📝 ملاحظات (اختياري)</span><textarea id="f_note" class="inp" placeholder="أي تفاصيل أو تعليمات عن المنتج..."></textarea></label>
-    <div class="fl"><span>📎 مرفق مع الملاحظة (صورة أو ملف) — اختياري</span><label class="photo-pick"><input type="file" id="f_nfile" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt" onchange="pickInto(this,'f_nprev')"><span id="f_nprev">📎 اضغط لإرفاق صورة أو ملف</span></label></div>`}
+    <div class="fl"><span>📎 مرفق مع الملاحظة (صورة أو ملف) — اختياري</span><span class="att-prev" id="f_nprev">📎 لا يوجد مرفق</span><div class="att-btns"><label><input type="file" id="f_nimg" accept="image/*" onchange="pickAtt(this,'f_nfile','f_nprev')">🖼️ صورة (المعرض)</label><label><input type="file" id="f_nfile" accept="application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.txt" onchange="pickAtt(this,'f_nimg','f_nprev')">📄 ملف</label></div></div>`}
     <button class="btn primary block" onclick="saveProduct(this)">💾 حفظ</button></div>`;
 }};
+function pickAtt(inp,otherId,target){ const f=inp.files&&inp.files[0]; if(!f) return; const o=$(otherId); if(o) o.value=''; $(target).innerHTML=isImg(f.type,f.name)?`<img src="${URL.createObjectURL(f)}" alt="">`:`📎 ${esc(f.name)}`; }
+function attFile(a,b){ return $(a)?.files?.[0]||$(b)?.files?.[0]||null; }
 function pickInto(inp,target){ const f=inp.files&&inp.files[0]; if(!f) return; $(target).innerHTML=isImg(f.type,f.name)?`<img src="${URL.createObjectURL(f)}" alt="">`:`📎 ${esc(f.name)}`; }
 function previewInto(inp,target){ const f=inp.files&&inp.files[0]; if(!f) return; $(target).innerHTML=`<img src="${URL.createObjectURL(f)}" alt="">`; }
 async function saveProduct(btn){
   await busy(btn,async()=>{
     const v=id=>($(id)?.value||'').trim();
-    const num=id=>{ const x=v(id); if(x==='') return null; const n=Number(x.replace(/,/g,'')); if(!isFinite(n)||n<0) throw new Error('السعر غير صحيح'); return n; };
+    const num=id=>{ const x=v(id); if(x==='') return null; const n=Number(normDigits(x).replace(/,/g,'')); if(!isFinite(n)||n<0) throw new Error('السعر غير صحيح'); return n; };
     const a={p_product_name:v('f_name'),p_number2:v('f_n2')||null,p_customer:v('f_cust'),p_address:v('f_addr')||null,p_deadline:v('f_dl')||null,
       p_cost:S.form.canPrice?num('f_cost'):null,p_price:S.form.canPrice?num('f_price'):null};
     if(!a.p_product_name||!a.p_customer) throw new Error('اسم المنتج واسم العميل مطلوبان');
     const img=$('f_img')?.files?.[0]||null;
-    const noteText=($('f_note')?.value||'').trim(), noteFile=$('f_nfile')?.files?.[0]||null;
+    const noteText=($('f_note')?.value||'').trim(), noteFile=attFile('f_nfile','f_nimg');
     if(noteFile&&noteFile.size>15*1024*1024) throw new Error('حجم المرفق كبير جداً (الحد 15 ميغا)');
     let id=S.form.id;
     if(id) await rpc('update_product2',{p_id:id,...a});
@@ -840,13 +854,13 @@ SCREENS.notes={title:'الملاحظات والمرفقات',async view(p){
   return `<div class="card"><div class="pc-h"><b>${esc(full.product.product_name)}${r&&r.item_name?' — 🔹 '+esc(r.item_name):''}</b><span class="pill">${esc(full.product.product_number)}</span></div><div class="muted">العميل: ${esc(full.product.customer_name)}</div></div>
     <div class="card"><div class="ct">كل ملاحظات المنتج (${notes.length})</div>${notes.length?notes.map(n=>noteHtml(n,urls,false)).join(''):'<div class="muted">لا توجد ملاحظات بعد</div>'}</div>
     ${canAdd?`<div class="card"><div class="ct">➕ ملاحظة جديدة</div><textarea id="n_text" class="inp" placeholder="اكتب الملاحظة هنا..."></textarea>
-      <div class="fl"><span>مرفق (صورة أو ملف) — اختياري</span><label class="photo-pick"><input type="file" id="n_file" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt" onchange="pickNoteFile(this)"><span id="n_prev">📎 اضغط لإرفاق صورة أو ملف</span></label></div>
+      <div class="fl"><span>مرفق (صورة أو ملف) — اختياري</span><span class="att-prev" id="n_prev">📎 لا يوجد مرفق</span><div class="att-btns"><label><input type="file" id="n_img" accept="image/*" onchange="pickAtt(this,'n_file','n_prev')">🖼️ صورة (المعرض)</label><label><input type="file" id="n_file" accept="application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.txt" onchange="pickAtt(this,'n_img','n_prev')">📄 ملف</label></div></div>
       <button class="btn primary block" onclick="saveNote(this)">💾 حفظ الملاحظة</button><div class="muted small center" style="margin-top:8px">الملاحظة تصل للمدراء فوراً كإشعار</div></div>`:'<div class="hint">إضافة الملاحظات متاحة للقسم الذي يوجد عنده المنتج حالياً</div>'}`;
 }};
 function pickNoteFile(inp){ const f=inp.files&&inp.files[0]; if(!f) return; $('n_prev').innerHTML=isImg(f.type,f.name)?`<img src="${URL.createObjectURL(f)}" alt="">`:`📎 ${esc(f.name)}`; }
 async function saveNote(btn){
   await busy(btn,async()=>{
-    const text=$('n_text').value.trim(), file=$('n_file')?.files?.[0]||null;
+    const text=$('n_text').value.trim(), file=attFile('n_file','n_img');
     if(!text&&!file) throw new Error('اكتب ملاحظة أو أرفق ملفاً');
     let up=null; if(file) up=await uploadProductFile(S.notes.pid,'notes',file);
     await rpc('add_note',{p_product:S.notes.pid,p_item:S.notes.item,p_note:text||null,p_file_path:up?up.path:null,p_file_name:up?up.name:null,p_file_type:up?up.type:null});
@@ -973,7 +987,7 @@ SCREENS.materials={title:'المواد المستخدمة',async view(p){
 }};
 async function addMaterial(btn){
   await busy(btn,async()=>{
-    const name=$('m_name').value.trim(), qty=Number($('m_qty').value), unit=document.querySelector('#m_unit .on')?.dataset.u;
+    const name=$('m_name').value.trim(), qty=Number(normDigits($('m_qty').value).replace(/,/g,'')), unit=document.querySelector('#m_unit .on')?.dataset.u;
     if(!name) throw new Error('اكتب اسم المادة');
     if(!isFinite(qty)||qty<=0) throw new Error('اكتب كمية صحيحة');
     await rpc('add_material',{p_product:S.mat.product_id,p_item:S.mat.item_id,p_name:name,p_qty:qty,p_unit:unit});
@@ -1074,8 +1088,13 @@ function setupSig(canvas){
   const start=e=>{ e.preventDefault(); drawing=true; last=pos(e); ctx.beginPath(); ctx.arc(last.x,last.y,1.1,0,Math.PI*2); ctx.fillStyle='#111'; ctx.fill(); has=true; };
   const move=e=>{ if(!drawing) return; e.preventDefault(); const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; has=true; };
   const end=()=>{ drawing=false; };
-  canvas.addEventListener('touchstart',start,{passive:false}); canvas.addEventListener('touchmove',move,{passive:false}); canvas.addEventListener('touchend',end);
-  canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+  if(window.PointerEvent){
+    canvas.addEventListener('pointerdown',e=>{ try{ canvas.setPointerCapture(e.pointerId); }catch(_){} start(e); });
+    canvas.addEventListener('pointermove',move); canvas.addEventListener('pointerup',end); canvas.addEventListener('pointercancel',end);
+  }else{
+    canvas.addEventListener('touchstart',start,{passive:false}); canvas.addEventListener('touchmove',move,{passive:false}); canvas.addEventListener('touchend',end);
+    canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+  }
   return {clear(){ ctx.fillStyle='#fff'; ctx.fillRect(0,0,r.width,r.height); has=false; },isEmpty:()=>!has,data:()=>canvas.toDataURL('image/png')};
 }
 SCREENS.receipt={title:'وصل استلام',async view(p){
